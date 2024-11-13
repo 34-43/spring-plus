@@ -1,5 +1,8 @@
 package org.example.expert.domain.auth.service;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.expert.config.JwtUtil;
 import org.example.expert.config.PasswordEncoder;
@@ -15,6 +18,9 @@ import org.example.expert.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -25,7 +31,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    public SignupResponse signup(SignupRequest signupRequest) {
+    public SignupResponse signup(HttpServletResponse res, SignupRequest signupRequest) {
 
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new InvalidRequestException("이미 존재하는 이메일입니다.");
@@ -38,16 +44,18 @@ public class AuthService {
         User newUser = new User(
                 signupRequest.getEmail(),
                 encodedPassword,
+                signupRequest.getNickname(),
                 userRole
         );
         User savedUser = userRepository.save(newUser);
 
-        String bearerToken = jwtUtil.createToken(savedUser.getId(), savedUser.getEmail(), userRole);
+        String bearerToken = jwtUtil.createToken(savedUser.getId(), savedUser.getEmail(), savedUser.getNickname(), userRole);
+        addAuthorizationCookie(res, bearerToken);
 
         return new SignupResponse(bearerToken);
     }
 
-    public SigninResponse signin(SigninRequest signinRequest) {
+    public SigninResponse signin(HttpServletResponse res, SigninRequest signinRequest) {
         User user = userRepository.findByEmail(signinRequest.getEmail()).orElseThrow(
                 () -> new InvalidRequestException("가입되지 않은 유저입니다."));
 
@@ -56,8 +64,22 @@ public class AuthService {
             throw new AuthException("잘못된 비밀번호입니다.");
         }
 
-        String bearerToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+        String bearerToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getNickname(), user.getUserRole());
+        addAuthorizationCookie(res, bearerToken);
 
         return new SigninResponse(bearerToken);
+    }
+
+    private void addAuthorizationCookie(HttpServletResponse res, String token) {
+        String encoded;
+        try {
+            encoded = URLEncoder.encode(token, StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            return;
+        }
+        Cookie cookie = new Cookie("Authorization", encoded);
+        cookie.setPath("/");
+        cookie.setMaxAge(60*60*1000);
+        res.addCookie(cookie);
     }
 }

@@ -6,6 +6,7 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.*;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.expert.domain.user.enums.UserRole;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -37,14 +40,19 @@ public class JwtFilter implements Filter {
             return;
         }
 
-        String bearerJwt = httpRequest.getHeader("Authorization");
+        if (url.startsWith("/h2-console")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+//        String bearerJwt = httpRequest.getHeader("Authorization");
+        String bearerJwt = getAuthFromCookies(httpRequest);
 
         if (bearerJwt == null) {
             // 토큰이 없는 경우 400을 반환합니다.
             httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "JWT 토큰이 필요합니다.");
             return;
         }
-
         String jwt = jwtUtil.substringToken(bearerJwt);
 
         try {
@@ -60,6 +68,7 @@ public class JwtFilter implements Filter {
             httpRequest.setAttribute("userId", Long.parseLong(claims.getSubject()));
             httpRequest.setAttribute("email", claims.get("email"));
             httpRequest.setAttribute("userRole", claims.get("userRole"));
+            httpRequest.setAttribute("nickname", claims.get("nickname"));
 
             if (url.startsWith("/admin")) {
                 // 관리자 권한이 없는 경우 403을 반환합니다.
@@ -90,5 +99,21 @@ public class JwtFilter implements Filter {
     @Override
     public void destroy() {
         Filter.super.destroy();
+    }
+
+    private String getAuthFromCookies(HttpServletRequest req) {
+        Cookie[] cookies = req.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("Authorization")) {
+                    try {
+                        return URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8);
+                    } catch (Exception ex) {
+                        throw new RuntimeException("Failed to decode Authorization cookie", ex);
+                    }
+                }
+            }
+        }
+        throw new RuntimeException("Failed to find Authorization cookie.");
     }
 }
