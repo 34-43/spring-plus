@@ -20,7 +20,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class CommentService {
 
     private final TodoRepository todoRepository;
@@ -47,10 +46,13 @@ public class CommentService {
         );
     }
 
+    @Transactional(readOnly = true) // 사실, N+1 문제의 원인일 수 있는 트랜잭션 설정
     public List<CommentResponse> getComments(long todoId) {
+        // repository 에서 Fetch Join 을 하므로, 반복문 내부에서 추가 쿼리가 일어나지 않도록 수정했습니다.
         List<Comment> commentList = commentRepository.findByTodoIdWithUser(todoId);
 
         List<CommentResponse> dtoList = new ArrayList<>();
+
         for (Comment comment : commentList) {
             User user = comment.getUser();
             CommentResponse dto = new CommentResponse(
