@@ -52,7 +52,7 @@ public class TodoService {
     public Page<TodoResponse> getTodos(int page, int size, String weather, LocalDateTime updatedAfter, LocalDateTime updatedBefore) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        Page<Todo> todos = todoRepository.findAllWithParams(weather,updatedAfter,updatedBefore,pageable);
+        Page<Todo> todos = todoRepository.findAllWithParamsDsl(weather,updatedAfter,updatedBefore,pageable);
 
         return todos.map(todo -> new TodoResponse(
                 todo.getId(),
