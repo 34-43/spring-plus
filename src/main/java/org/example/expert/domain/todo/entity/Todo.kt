@@ -1,43 +1,55 @@
-package org.example.expert.domain.todo.entity;
+package org.example.expert.domain.todo.entity
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.example.expert.domain.comment.entity.Comment;
-import org.example.expert.domain.common.entity.Timestamped;
-import org.example.expert.domain.manager.entity.Manager;
-import org.example.expert.domain.user.entity.User;
+import jakarta.persistence.*
+import lombok.NoArgsConstructor
+import org.example.expert.domain.comment.entity.Comment
+import org.example.expert.domain.common.entity.Timestamped
+import org.example.expert.domain.manager.entity.Manager
+import org.example.expert.domain.user.entity.User
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Getter
 @Entity
-@NoArgsConstructor
 @Table(name = "todos")
-public class Todo extends Timestamped {
+@NoArgsConstructor
+class Todo() : Timestamped() {
+    constructor(title: String, contents: String, weather: String, user: User) : this() {
+        this.title = title
+        this.contents = contents
+        this.weather = weather
+        this.user = user
+        this.appendManager()
+    }
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String title;
-    private String contents;
-    private String weather;
+    private final fun appendManager() {
+        this.managers.add(Manager(this.user, this))
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private var id : Long = 0L
+
+    @Column(nullable = false)
+    private lateinit var title : String
+
+    @Column(nullable = false)
+    private lateinit var contents : String
+
+    @Column(nullable = false)
+    private lateinit var weather : String
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private lateinit var user : User
 
-    @OneToMany(mappedBy = "todo", cascade = CascadeType.REMOVE)
-    private List<Comment> comments = new ArrayList<>();
+    @OneToMany(mappedBy = "todo", cascade = [CascadeType.REMOVE], orphanRemoval = true)
+    private var comments : MutableList<Comment> = mutableListOf()
 
-    @OneToMany(mappedBy = "todo", cascade = CascadeType.ALL)
-    private List<Manager> managers = new ArrayList<>();
+    @OneToMany(mappedBy = "todo", cascade = [CascadeType.ALL], orphanRemoval = true)
+    private var managers : MutableList<Manager> = mutableListOf()
 
-    public Todo(String title, String contents, String weather, User user) {
-        this.title = title;
-        this.contents = contents;
-        this.weather = weather;
-        this.user = user;
-        this.managers.add(new Manager(user, this));
-    }
+    // getter
+    fun getId() = this.id
+    fun getTitle() = this.title
+    fun getContents() = this.contents
+    fun getWeather() = this.weather
+    fun getUser() = this.user
 }
