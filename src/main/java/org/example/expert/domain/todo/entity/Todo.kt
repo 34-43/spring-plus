@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import lombok.NoArgsConstructor
 import org.example.expert.domain.comment.entity.Comment
 import org.example.expert.domain.common.entity.Timestamped
+import org.example.expert.domain.common.exception.InvalidRequestException
 import org.example.expert.domain.manager.entity.Manager
 import org.example.expert.domain.user.entity.User
 
@@ -51,5 +52,11 @@ class Todo() : Timestamped() {
     fun getTitle() = this.title
     fun getContents() = this.contents
     fun getWeather() = this.weather
-    fun getUser() = this.user
+    fun getUser() : User {
+        if (this::user.isInitialized) {
+            return this.user
+        } else {
+            throw InvalidRequestException("담당자를 등록하려고 하는 유저가 유효하지 않거나, 일정을 만든 유저가 아닙니다.")
+        }
+    }
 }
