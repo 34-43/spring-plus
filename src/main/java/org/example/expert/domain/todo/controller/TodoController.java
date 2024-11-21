@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.expert.domain.common.annotation.Auth;
 import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
@@ -37,6 +38,18 @@ public class TodoController {
             @RequestParam(required = false) LocalDateTime updatedBefore
             ) {
         return ResponseEntity.ok(todoService.getTodos(page, size, weather, updatedAfter, updatedBefore));
+    }
+
+    @GetMapping("/todos/search")
+    public ResponseEntity<Page<TodoSearchResponse>> searchTodos(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String searchBy,
+            @RequestParam(required = false) LocalDateTime updatedAfter,
+            @RequestParam(required = false) LocalDateTime updatedBefore
+    ) {
+        return ResponseEntity.ok(todoService.searchTodos(page, size, search, searchBy, updatedAfter, updatedBefore));
     }
 
     @GetMapping("/todos/{todoId}")
